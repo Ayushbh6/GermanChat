@@ -1,0 +1,13 @@
+flask
+openai
+python-dotenv
+Werkzeug
+ollama
+flask-cors
+streamlit
+openai
+openai-agents
+langchain
+langchain-openai
+langchain-core
+tiktoken
