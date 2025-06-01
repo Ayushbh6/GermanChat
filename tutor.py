@@ -18,23 +18,105 @@ def generate_new_batch(n_words):
     today = date.today().isoformat()
     prompt = (
         f"Generate {n_words} German vocabulary words with their English meanings "
-        "and examples in present, past, and future tense. Respond in JSON format "
-        "as a list of objects with keys: root, english, examples "
-        "where examples is a dict with keys present, past, future and lists of sentences."
+        "and examples in present, past, and future tense. Respond ONLY with valid JSON, "
+        "outputting a list of objects with keys 'root', 'english', and 'examples', "
+        "where 'examples' is a dict with keys 'present', 'past', and 'future' mapping to lists of German sentences. "
+        "Do not include any additional text or commentary outside the JSON array."
+    )
+    example_json = (
+        "[\n"
+        "  {\n"
+        "    \"root\": \"sprechen\",\n"
+        "    \"english\": \"to speak\",\n"
+        "    \"examples\": {\n"
+        "      \"present\": [\"Ich spreche Deutsch.\"],\n"
+        "      \"past\": [\"Ich sprach gestern mit meinem Freund.\"],\n"
+        "      \"future\": [\"Ich werde morgen sprechen.\"]\n"
+        "    }\n"
+        "  },\n"
+        "  {\n"
+        "    \"root\": \"lernen\",\n"
+        "    \"english\": \"to learn\",\n"
+        "    \"examples\": {\n"
+        "      \"present\": [\"Ich lerne Deutsch.\"],\n"
+        "      \"past\": [\"Ich lernte gestern neue Wörter.\"],\n"
+        "      \"future\": [\"Ich werde morgen lernen.\"]\n"
+        "    }\n"
+        "  }\n"
+        "]"
     )
     response = client.responses.create(
         model="o4-mini",
         input=[
             {
                 "role": "system",
-                "text": (
+                "content": (
                     "You are a caring, patient, and professional German language tutor teaching an A2-level student. "
-                    "Design your responses and examples to suit the A2 level."
+                    "Tailor examples to the A2 level, and maintain a supportive and encouraging tone."
                 ),
             },
-            {"role": "system", "text": prompt},
+            {
+                "role": "system",
+                "content": "Here are two examples of valid output following the schema:\n" + example_json,
+            },
+            {"role": "system", "content": prompt},
         ],
-        text={"format": {"type": "text"}},
+        text={
+            "format": {
+                "type": "json_schema",
+                "name": "german_sentences",
+                "strict": True,
+                "schema": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "root": {
+                                "type": "string",
+                                "description": "The root form of the term or verb in German."
+                            },
+                            "english": {
+                                "type": "string",
+                                "description": "The English translation of the root term."
+                            },
+                            "examples": {
+                                "type": "object",
+                                "properties": {
+                                    "present": {
+                                        "type": "array",
+                                        "description": "List of German sentences in the present tense.",
+                                        "items": {
+                                            "type": "string",
+                                            "description": "A sentence in German in present tense."
+                                        }
+                                    },
+                                    "past": {
+                                        "type": "array",
+                                        "description": "List of German sentences in the past tense.",
+                                        "items": {
+                                            "type": "string",
+                                            "description": "A sentence in German in past tense."
+                                        }
+                                    },
+                                    "future": {
+                                        "type": "array",
+                                        "description": "List of German sentences in the future tense.",
+                                        "items": {
+                                            "type": "string",
+                                            "description": "A sentence in German in future tense."
+                                        }
+                                    }
+                                },
+                                "required": ["present", "past", "future"],
+                                "additionalProperties": False
+                            }
+                        },
+                        "required": ["root", "english", "examples"],
+                        "additionalProperties": False
+                    }
+                }
+            }
+        },
         reasoning={"effort": "medium"},
         tools=[],
         store=True,
@@ -96,7 +178,7 @@ def chat_session_interact(session_id, user_message):
     data_manager.append_message(session_id, "user", user_message)
     system_message = {
         "role": "system",
-        "text": (
+        "content": (
             "You are a caring, patient, and professional German language tutor teaching an A2-level student. "
             "Tailor your responses and examples to the A2 level. "
             "Always write the main sentences and vocabulary in German, but provide explanations of grammar, vocabulary, and concepts in English, "
@@ -104,7 +186,8 @@ def chat_session_interact(session_id, user_message):
             "Maintain a supportive and encouraging tone."
         ),
     }
-    context = [system_message] + trimmed + [{"role": "user", "text": user_message}]
+    chat_history = [{"role": msg["role"], "content": msg["text"]} for msg in trimmed]
+    context = [system_message] + chat_history + [{"role": "user", "content": user_message}]
     response = client.responses.create(
         model="gpt-4.1",
         input=context,
