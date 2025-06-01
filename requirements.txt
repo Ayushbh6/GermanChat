@@ -11,3 +11,6 @@ langchain
 langchain-openai
 langchain-core
 tiktoken
+pytest
+pytest-asyncio
+
