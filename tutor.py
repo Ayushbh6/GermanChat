@@ -24,26 +24,28 @@ def generate_new_batch(n_words):
         "Do not include any additional text or commentary outside the JSON array."
     )
     example_json = (
-        "[\n"
-        "  {\n"
-        "    \"root\": \"sprechen\",\n"
-        "    \"english\": \"to speak\",\n"
-        "    \"examples\": {\n"
-        "      \"present\": [\"Ich spreche Deutsch.\"],\n"
-        "      \"past\": [\"Ich sprach gestern mit meinem Freund.\"],\n"
-        "      \"future\": [\"Ich werde morgen sprechen.\"]\n"
+        "{\n"
+        "  \"german_sentences\": [\n"
+        "    {\n"
+        "      \"root\": \"sprechen\",\n"
+        "      \"english\": \"to speak\",\n"
+        "      \"examples\": {\n"
+        "        \"present\": [\"Ich spreche Deutsch.\"],\n"
+        "        \"past\": [\"Ich sprach gestern mit meinem Freund.\"],\n"
+        "        \"future\": [\"Ich werde morgen sprechen.\"]\n"
+        "      }\n"
+        "    },\n"
+        "    {\n"
+        "      \"root\": \"lernen\",\n"
+        "      \"english\": \"to learn\",\n"
+        "      \"examples\": {\n"
+        "        \"present\": [\"Ich lerne Deutsch.\"],\n"
+        "        \"past\": [\"Ich lernte gestern neue Wörter.\"],\n"
+        "        \"future\": [\"Ich werde morgen lernen.\"]\n"
+        "      }\n"
         "    }\n"
-        "  },\n"
-        "  {\n"
-        "    \"root\": \"lernen\",\n"
-        "    \"english\": \"to learn\",\n"
-        "    \"examples\": {\n"
-        "      \"present\": [\"Ich lerne Deutsch.\"],\n"
-        "      \"past\": [\"Ich lernte gestern neue Wörter.\"],\n"
-        "      \"future\": [\"Ich werde morgen lernen.\"]\n"
-        "    }\n"
-        "  }\n"
-        "]"
+        "  ]\n"
+        "}"
     )
     response = client.responses.create(
         model="o4-mini",
@@ -67,53 +69,51 @@ def generate_new_batch(n_words):
                 "name": "german_sentences",
                 "strict": True,
                 "schema": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "root": {
-                                "type": "string",
-                                "description": "The root form of the term or verb in German."
-                            },
-                            "english": {
-                                "type": "string",
-                                "description": "The English translation of the root term."
-                            },
-                            "examples": {
+                    "type": "object",
+                    "properties": {
+                        "german_sentences": {
+                            "type": "array",
+                            "items": {
                                 "type": "object",
                                 "properties": {
-                                    "present": {
-                                        "type": "array",
-                                        "description": "List of German sentences in the present tense.",
-                                        "items": {
-                                            "type": "string",
-                                            "description": "A sentence in German in present tense."
-                                        }
+                                    "root": {
+                                        "type": "string",
+                                        "description": "The root form of the term or verb in German."
                                     },
-                                    "past": {
-                                        "type": "array",
-                                        "description": "List of German sentences in the past tense.",
-                                        "items": {
-                                            "type": "string",
-                                            "description": "A sentence in German in past tense."
-                                        }
+                                    "english": {
+                                        "type": "string",
+                                        "description": "The English translation of the root term."
                                     },
-                                    "future": {
-                                        "type": "array",
-                                        "description": "List of German sentences in the future tense.",
-                                        "items": {
-                                            "type": "string",
-                                            "description": "A sentence in German in future tense."
-                                        }
+                                    "examples": {
+                                        "type": "object",
+                                        "properties": {
+                                            "present": {
+                                                "type": "array",
+                                                "description": "List of German sentences in the present tense.",
+                                                "items": {"type": "string"}
+                                            },
+                                            "past": {
+                                                "type": "array",
+                                                "description": "List of German sentences in the past tense.",
+                                                "items": {"type": "string"}
+                                            },
+                                            "future": {
+                                                "type": "array",
+                                                "description": "List of German sentences in the future tense.",
+                                                "items": {"type": "string"}
+                                            }
+                                        },
+                                        "required": ["present", "past", "future"],
+                                        "additionalProperties": False
                                     }
                                 },
-                                "required": ["present", "past", "future"],
+                                "required": ["root", "english", "examples"],
                                 "additionalProperties": False
                             }
-                        },
-                        "required": ["root", "english", "examples"],
-                        "additionalProperties": False
-                    }
+                        }
+                    },
+                    "required": ["german_sentences"],
+                    "additionalProperties": False
                 }
             }
         },
@@ -122,7 +122,8 @@ def generate_new_batch(n_words):
         store=True,
     )
     try:
-        candidates = json.loads(response.output_text)
+        raw = json.loads(response.output_text)
+        candidates = raw["german_sentences"]
     except Exception as e:
         raise RuntimeError("Failed to parse model output for new batch") from e
 

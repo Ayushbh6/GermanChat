@@ -88,7 +88,7 @@ def test_generate_new_batch_basic(monkeypatch):
     monkeypatch.setattr(
         tutor.client.responses,
         'create',
-        lambda *args, **kwargs: DummyResponse(json.dumps(items))
+        lambda *args, **kwargs: DummyResponse(json.dumps({"german_sentences": items}))
     )
     new = tutor.generate_new_batch(1)
     assert len(new) == 1
@@ -117,7 +117,11 @@ def test_generate_new_batch_duplicate(monkeypatch):
     monkeypatch.setattr(
         tutor.client.responses,
         'create',
-        lambda *args, **kwargs: DummyResponse(json.dumps([{'root': 'Haus', 'english': 'house', 'examples': {}}]))
+        lambda *args, **kwargs: DummyResponse(json.dumps({
+            "german_sentences": [
+                {'root': 'Haus', 'english': 'house', 'examples': {}}
+            ]
+        }))
     )
     res = tutor.generate_new_batch(1)
     assert res == []
